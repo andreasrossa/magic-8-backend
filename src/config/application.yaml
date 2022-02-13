@@ -1,0 +1,8 @@
+openai:
+  defaultPrompts:
+    sarcastic: |-
+      The man asked the oracle: "{{question}}".
+      She sarcastically answered: "
+    jokingly: |-
+      The man asked the oracle: "{{question}}".
+      She jokingly answered: "
