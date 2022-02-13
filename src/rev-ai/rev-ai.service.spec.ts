@@ -1,15 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { GoogleSpeechService } from './google-speech.service';
+import { RevAiService } from './rev-ai.service';
 
-describe('GoogleSpeechService', () => {
-  let service: GoogleSpeechService;
+describe('RevAiService', () => {
+  let service: RevAiService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [GoogleSpeechService],
+      providers: [RevAiService],
     }).compile();
 
-    service = module.get<GoogleSpeechService>(GoogleSpeechService);
+    service = module.get<RevAiService>(RevAiService);
   });
 
   it('should be defined', () => {

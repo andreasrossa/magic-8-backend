@@ -9,16 +9,16 @@ import {
 import * as fs from 'fs';
 import { DefaultLogger } from 'src/logger/default-logger';
 import { Socket } from 'socket.io';
-import { Stream } from 'stream';
-import { GoogleSpeechService } from 'src/google-speech/google-speech.service';
+import { Duplex, pipeline, Readable } from 'stream';
+import { RevAiService } from 'src/rev-ai/rev-ai.service';
 @WebSocketGateway(3001, { transports: ['websocket', 'polling'] })
 export class DeviceBridgeGateway implements OnGatewayConnection {
-  private streams: Record<string, Stream> = {};
+  private streams: Record<string, Duplex> = {};
   private timeouts: Record<string, NodeJS.Timeout> = {};
 
   constructor(
     private logger: DefaultLogger,
-    private speechService: GoogleSpeechService,
+    private revAiService: RevAiService,
   ) {}
 
   handleConnection(client: any, ...args: any[]) {
@@ -28,15 +28,31 @@ export class DeviceBridgeGateway implements OnGatewayConnection {
   @SubscribeMessage('start')
   handleStart(@ConnectedSocket() client: Socket) {
     this.logger.log(`Starting stream for ${client.id}`);
-    this.streams[client.id] = new Stream();
+    this.streams[client.id] = new Duplex();
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    this.streams[client.id].read = function () {};
+    this.streams[client.id].on('data', (data: any) =>
+      this.logger.debug(`Received data from stream for ${client.id}`),
+    );
+
+    const transcriptionStream = this.revAiService.getTranscriptionStream();
+
+    transcriptionStream.on('error', (e) => this.logger.error(e));
+    transcriptionStream.on('data', (data) => this.logger.debug(data));
+
+    pipeline(this.streams[client.id], transcriptionStream, (err) => {
+      if (err) {
+        this.logger.error(err);
+      } else {
+        this.logger.debug('Pipeline finished');
+      }
+    });
+
+    this.timeouts[client.id] = setTimeout(() => {
+      this.quitStream(client.id);
+    }, 10000);
 
     this.logger.debug('Starting stream for client ' + client.id);
-
-    const transcriptionStream = this.speechService.transcribe();
-
-    this.streams[client.id]
-      .addListener('data', (data) => console.log(data))
-      .pipe(transcriptionStream, { end: true });
   }
 
   @SubscribeMessage('audio_packet')
@@ -44,6 +60,7 @@ export class DeviceBridgeGateway implements OnGatewayConnection {
     @ConnectedSocket() client: Socket,
     @MessageBody() data: any,
   ) {
+    this.logger.debug(`received data from ${client.id}`);
     if (this.streams[client.id] === undefined) {
       throw new Error('Not initialized');
     }
@@ -76,6 +93,12 @@ export class DeviceBridgeGateway implements OnGatewayConnection {
   }
 
   private quitStream(clientId: string) {
+    this.logger.debug('Quitting stream for client ' + clientId);
+    if (this.timeouts[clientId]) {
+      clearTimeout(this.timeouts[clientId]);
+      delete this.timeouts[clientId];
+    }
+
     if (this.streams[clientId] === undefined) {
       throw new Error('Stream doesnt exist.');
     }

@@ -5,7 +5,7 @@ import { DeviceBridgeModule } from './device-bridge/device-bridge.module';
 import { LoggerModule } from './logger/logger.module';
 import { Gpt3Module } from './gpt-3/gpt-3.module';
 import { ConfigModule } from '@nestjs/config';
-import { GoogleSpeechModule } from './google-speech/google-speech.module';
+import { RevAiModule } from './rev-ai/rev-ai.module';
 import config from './config/configuration';
 
 @Module({
@@ -14,7 +14,7 @@ import config from './config/configuration';
     ConfigModule.forRoot({ isGlobal: true, load: [config] }),
     DeviceBridgeModule,
     Gpt3Module,
-    GoogleSpeechModule,
+    RevAiModule,
   ],
   controllers: [AppController],
   providers: [AppService],

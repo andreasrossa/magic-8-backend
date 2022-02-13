@@ -4,12 +4,14 @@ import { Engine } from 'openai';
 import { OracleQuestionRequest } from './app.dto';
 import { CompletionPromptService } from './gpt-3/completion-prompt/completion-prompt.service';
 import { Gpt3Service } from './gpt-3/gpt-3.service';
+import { RevAiService } from './rev-ai/rev-ai.service';
 
 @Controller()
 export class AppController {
   constructor(
     private readonly gpt3Service: Gpt3Service,
     private readonly promptService: CompletionPromptService,
+    private readonly revAiService: RevAiService,
   ) {}
 
   @Get()
@@ -79,5 +81,11 @@ export class AppController {
   @Get('prompts')
   getPrompts(): Record<string, string> {
     return this.promptService.getPromptObject();
+  }
+
+  @Get('transcribe')
+  getTranscription(): any {
+    this.revAiService.transcribeFile();
+    return 'cool';
   }
 }
